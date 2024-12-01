@@ -22,13 +22,10 @@ fun CameraPreview(scanner: AndroidScanner) {
                 val cameraProvider = cameraProviderFuture.get()
                 val preview = Preview.Builder().build()
 
-                // Usa SurfaceProvider directamente para compatibilidad con CameraX
                 preview.setSurfaceProvider { request ->
                     val surface = surfaceView.holder.surface
                     if (surface != null && surface.isValid) {
-                        request.provideSurface(surface, ContextCompat.getMainExecutor(ctx)) {
-                            // Callback cuando el Surface ya no sea necesario
-                        }
+                        request.provideSurface(surface, ContextCompat.getMainExecutor(ctx)) {}
                     }
                 }
 

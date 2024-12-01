@@ -70,9 +70,7 @@ class AndroidScanner(
                 }
             }
 
-            // Asegúrate de desvincular los casos previos antes de agregar nuevos
             cameraProvider.unbindAll()
-
             try {
                 cameraProvider.bindToLifecycle(
                     lifecycleOwner,
