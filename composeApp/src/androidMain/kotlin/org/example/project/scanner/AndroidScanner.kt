@@ -1,7 +1,9 @@
 package org.example.project.scanner
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
+import android.util.Size
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -33,16 +35,24 @@ class AndroidScanner(
             ).build()
     )
 
+    @SuppressLint("RestrictedApi")
     @OptIn(ExperimentalGetImage::class)
     override fun startScanning(onResult: (String) -> Unit) {
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
-            val preview = Preview.Builder().build()
+
+            // Configuración de Preview con tamaño predeterminado
+            val preview = Preview.Builder()
+                .setDefaultResolution(Size(1280, 720)) // Configuración fija de resolución
+                .build()
+
+            // Configuración de ImageAnalysis con tamaño predeterminado
             val imageAnalysis = ImageAnalysis.Builder()
+                .setDefaultResolution(Size(640, 480)) // Resolución adecuada para análisis
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
 
-            // Configuramos el analizador de imágenes
+            // Configuración del análisis de imágenes
             imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
                 val mediaImage = imageProxy.image
                 if (mediaImage != null) {
@@ -52,7 +62,7 @@ class AndroidScanner(
                             for (barcode in barcodes) {
                                 val rawValue = barcode.rawValue
                                 if (!rawValue.isNullOrEmpty()) {
-                                    onResult(rawValue) // Actualiza la interfaz con el código escaneado
+                                    onResult(rawValue)
                                     imageProxy.close()
                                     return@addOnSuccessListener
                                 }
@@ -65,12 +75,12 @@ class AndroidScanner(
                             imageProxy.close()
                         }
                 } else {
-                    Log.w("AndroidScanner", "No media image found.")
                     imageProxy.close()
                 }
             }
 
-            // Vinculamos la cámara al ciclo de vida
+            // Vincular los casos de uso
+            cameraProvider.unbindAll()
             cameraProvider.bindToLifecycle(
                 lifecycleOwner,
                 CameraSelector.DEFAULT_BACK_CAMERA,
