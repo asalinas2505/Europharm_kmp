@@ -1,3 +1,4 @@
+// commonMain - ScannerScreen.kt
 package org.example.project.ui
 
 import androidx.compose.runtime.Composable
