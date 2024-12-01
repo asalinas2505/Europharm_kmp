@@ -1,6 +1,5 @@
 package org.example.project.ui
 
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -18,17 +17,19 @@ actual fun ScannerScreen() {
     val scanner = remember { AndroidScanner(context, lifecycleOwner) }
 
     Column(Modifier.fillMaxSize()) {
+        // Parte superior: Vista de la cámara
         Box(
             Modifier
-                .weight(4f)
+                .weight(4f) // Tamaño relativo para la cámara
                 .fillMaxWidth()
         ) {
             CameraPreview(scanner)
         }
 
+        // Parte inferior: Resultado del escaneo
         Box(
             Modifier
-                .weight(1f)
+                .weight(1f) // Tamaño relativo para el texto
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
@@ -36,6 +37,7 @@ actual fun ScannerScreen() {
         }
     }
 
+    // Maneja el ciclo de vida del escáner
     DisposableEffect(Unit) {
         scanner.startScanning { code ->
             scannedCode = "Código Escaneado: $code"

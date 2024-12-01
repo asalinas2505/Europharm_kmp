@@ -17,13 +17,14 @@ fun CameraPreview(scanner: AndroidScanner) {
         modifier = Modifier.fillMaxSize(),
         factory = { ctx ->
             val surfaceView = SurfaceView(ctx)
+
             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
 
             cameraProviderFuture.addListener({
                 val cameraProvider = cameraProviderFuture.get()
                 val preview = Preview.Builder().build()
 
-                // Configura el SurfaceProvider
+                // Configura el SurfaceProvider para la vista previa
                 preview.setSurfaceProvider { request ->
                     val surface = surfaceView.holder.surface
                     if (surface != null && surface.isValid) {
@@ -31,9 +32,9 @@ fun CameraPreview(scanner: AndroidScanner) {
                     }
                 }
 
-                // Vincula el uso de Preview al ciclo de vida
+                // Configuración de la cámara
                 val cameraSelector = androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA
-                cameraProvider.unbindAll()
+                cameraProvider.unbindAll() // Limpia configuraciones anteriores
                 try {
                     cameraProvider.bindToLifecycle(
                         scanner.lifecycleOwner,
@@ -45,14 +46,14 @@ fun CameraPreview(scanner: AndroidScanner) {
                 }
             }, ContextCompat.getMainExecutor(ctx))
 
-            // Configura el SurfaceHolder para asegurar la visibilidad
+            // Configura callbacks para el SurfaceHolder
             surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
                 override fun surfaceCreated(holder: SurfaceHolder) {
                     // Configuración adicional si es necesario
                 }
 
                 override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-                    // Ajusta el tamaño si es necesario
+                    // Maneja cambios en el tamaño del SurfaceView
                 }
 
                 override fun surfaceDestroyed(holder: SurfaceHolder) {
