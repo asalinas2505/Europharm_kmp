@@ -1,0 +1,10 @@
+platform :ios, '15.4'
+
+target 'iosApp' do
+  use_frameworks!
+  pod 'composeApp', :path => '../composeApp'
+  pod 'MLKitBarcodeScanning', '5.0.0'
+    pod 'MLKitCommon', '11.0.0'
+    pod 'MLKitVision', '7.0.0'
+end
+
