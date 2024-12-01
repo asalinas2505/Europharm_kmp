@@ -1,47 +1,80 @@
 package org.example.project.ui
 
+import android.util.Log
+import android.view.ViewGroup
+import androidx.annotation.OptIn
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.common.InputImage
 import org.example.project.scanner.AndroidScanner
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 @Composable
-actual fun ScannerScreen() {
+fun ScannerScreen() {
     val context = LocalContext.current
-    val lifecycleOwner = LocalContext.current as LifecycleOwner
-    var scannedCode by remember { mutableStateOf("Esperando escaneo...") }
+    val lifecycleOwner = context as LifecycleOwner
     val scanner = remember { AndroidScanner(context, lifecycleOwner) }
 
-    Column(Modifier.fillMaxSize()) {
-        // Parte superior: Vista de la cámara
+    var scannedResult by remember { mutableStateOf("Esperando escaneo...") }
+    var debugMessage by remember { mutableStateOf("Cargando cámara...") }
+
+    Column(modifier = Modifier.fillMaxSize()) {
         Box(
-            Modifier
-                .weight(4f) // Tamaño relativo para la cámara
+            modifier = Modifier
+                .weight(4f)
                 .fillMaxWidth()
         ) {
-            CameraPreview(scanner)
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { ctx ->
+                    val previewView = androidx.camera.view.PreviewView(ctx).apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    }
+                    scanner.initializeCamera(previewView, { result ->
+                        scannedResult = result
+                        debugMessage = "Código escaneado correctamente"
+                    }, { error ->
+                        debugMessage = "Error: $error"
+                    })
+                    previewView
+                }
+            )
         }
 
-        // Parte inferior: Resultado del escaneo
         Box(
-            Modifier
-                .weight(1f) // Tamaño relativo para el texto
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
         ) {
-            Text(text = scannedCode)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = scannedResult)
+                Text(text = debugMessage)
+            }
         }
     }
 
-    // Maneja el ciclo de vida del escáner
     DisposableEffect(Unit) {
-        scanner.startScanning { code ->
-            scannedCode = "Código Escaneado: $code"
-        }
         onDispose {
             scanner.stopScanning()
         }

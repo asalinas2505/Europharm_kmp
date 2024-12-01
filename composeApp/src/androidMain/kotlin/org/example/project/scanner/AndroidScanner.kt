@@ -14,14 +14,14 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class AndroidScanner(
-    val context: Context,
-    val lifecycleOwner: LifecycleOwner
-) : Scanner {
-
-    private val cameraExecutor = Executors.newSingleThreadExecutor()
+    private val context: Context,
+    private val lifecycleOwner: LifecycleOwner
+) {
+    private val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
     private val barcodeScanner = BarcodeScanning.getClient(
         BarcodeScannerOptions.Builder()
@@ -34,44 +34,52 @@ class AndroidScanner(
     )
 
     @OptIn(ExperimentalGetImage::class)
-    override fun startScanning(onResult: (String) -> Unit) {
+    fun initializeCamera(
+        previewView: androidx.camera.view.PreviewView,
+        onResult: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
+            try {
+                val cameraProvider = cameraProviderFuture.get()
 
-            // Configuración de Preview
-            val preview = Preview.Builder().build()
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
 
-            // Configuración de ImageAnalysis
-            val imageAnalysis = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
+                val imageAnalysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
 
-            imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                val mediaImage = imageProxy.image
-                if (mediaImage != null) {
-                    val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                    barcodeScanner.process(inputImage)
-                        .addOnSuccessListener { barcodes ->
-                            for (barcode in barcodes) {
-                                val rawValue = barcode.rawValue
-                                if (!rawValue.isNullOrEmpty()) {
-                                    onResult(rawValue)
-                                    imageProxy.close()
-                                    return@addOnSuccessListener
+                imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
+                    val mediaImage = imageProxy.image
+                    if (mediaImage != null) {
+                        val inputImage = InputImage.fromMediaImage(
+                            mediaImage,
+                            imageProxy.imageInfo.rotationDegrees
+                        )
+                        barcodeScanner.process(inputImage)
+                            .addOnSuccessListener { barcodes ->
+                                for (barcode in barcodes) {
+                                    val rawValue = barcode.rawValue
+                                    if (!rawValue.isNullOrEmpty()) {
+                                        onResult(rawValue)
+                                        imageProxy.close()
+                                        return@addOnSuccessListener
+                                    }
                                 }
                             }
-                        }
-                        .addOnFailureListener {
-                            Log.e("AndroidScanner", "Error: ${it.message}")
-                        }
-                        .addOnCompleteListener {
-                            imageProxy.close()
-                        }
+                            .addOnFailureListener {
+                                Log.e("AndroidScanner", "Error escaneando: ${it.message}")
+                                onError(it.message ?: "Error desconocido")
+                            }
+                            .addOnCompleteListener {
+                                imageProxy.close()
+                            }
+                    }
                 }
-            }
 
-            cameraProvider.unbindAll()
-            try {
+                cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
                     lifecycleOwner,
                     CameraSelector.DEFAULT_BACK_CAMERA,
@@ -79,12 +87,17 @@ class AndroidScanner(
                     imageAnalysis
                 )
             } catch (e: Exception) {
-                Log.e("AndroidScanner", "Error binding use cases: ${e.message}")
+                Log.e("AndroidScanner", "Error inicializando cámara: ${e.message}")
+                onError(e.message ?: "Error desconocido")
             }
         }, ContextCompat.getMainExecutor(context))
     }
 
-    override fun stopScanning() {
-        cameraProviderFuture.get().unbindAll()
+    fun stopScanning() {
+        try {
+            cameraProviderFuture.get().unbindAll()
+        } catch (e: Exception) {
+            Log.e("AndroidScanner", "Error deteniendo la cámara: ${e.message}")
+        }
     }
 }
