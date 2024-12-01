@@ -1,5 +1,3 @@
-// AndroidMain - ScannerScreen.kt
-
 package org.example.project.ui
 
 import android.content.Context
@@ -16,14 +14,14 @@ import org.example.project.scanner.AndroidScanner
 actual fun ScannerScreen() {
     val context = LocalContext.current
     val lifecycleOwner = LocalContext.current as LifecycleOwner
-    var scannedCode by remember { mutableStateOf(" ") }
+    var scannedCode by remember { mutableStateOf("Esperando escaneo...") }
     val scanner = remember { AndroidScanner(context, lifecycleOwner) }
 
     Column(Modifier.fillMaxSize()) {
         // Parte superior: Vista de la cámara
         Box(
             Modifier
-                .weight(4f)
+                .weight(4f) // Ajusta el tamaño relativo
                 .fillMaxWidth()
         ) {
             CameraPreview(scanner)
@@ -32,11 +30,21 @@ actual fun ScannerScreen() {
         // Parte inferior: Resultado del escaneo
         Box(
             Modifier
-                .weight(1f)
+                .weight(1f) // Ajusta el tamaño relativo
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(text = "Código Escaneado: $scannedCode el coño de tu prima")
+            Text(text = "Código Escaneado: $scannedCode")
+        }
+    }
+
+    // Inicia el escaneo cuando se monta el Composable
+    DisposableEffect(Unit) {
+        scanner.startScanning { code ->
+            scannedCode = "Código Escaneado: $code"
+        }
+        onDispose {
+            scanner.stopScanning()
         }
     }
 }

@@ -1,5 +1,3 @@
-// AndroidMain - AndroidScanner.kt
-
 package org.example.project.scanner
 
 import android.content.Context
@@ -44,6 +42,7 @@ class AndroidScanner(
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
 
+            // Configuramos el analizador de imágenes
             imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
                 val mediaImage = imageProxy.image
                 if (mediaImage != null) {
@@ -53,7 +52,7 @@ class AndroidScanner(
                             for (barcode in barcodes) {
                                 val rawValue = barcode.rawValue
                                 if (!rawValue.isNullOrEmpty()) {
-                                    onResult(rawValue)
+                                    onResult(rawValue) // Actualiza la interfaz con el código escaneado
                                     imageProxy.close()
                                     return@addOnSuccessListener
                                 }
@@ -65,9 +64,13 @@ class AndroidScanner(
                         .addOnCompleteListener {
                             imageProxy.close()
                         }
+                } else {
+                    Log.w("AndroidScanner", "No media image found.")
+                    imageProxy.close()
                 }
             }
 
+            // Vinculamos la cámara al ciclo de vida
             cameraProvider.bindToLifecycle(
                 lifecycleOwner,
                 CameraSelector.DEFAULT_BACK_CAMERA,

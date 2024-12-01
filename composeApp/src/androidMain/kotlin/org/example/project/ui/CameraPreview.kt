@@ -1,5 +1,3 @@
-// AndroidMain - CameraPreview.kt
-
 package org.example.project.ui
 
 import android.view.SurfaceView
@@ -17,17 +15,21 @@ fun CameraPreview(scanner: AndroidScanner) {
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { ctx ->
-            val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
             val surfaceView = SurfaceView(ctx)
+            val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
 
             cameraProviderFuture.addListener({
                 val cameraProvider = cameraProviderFuture.get()
                 val preview = Preview.Builder().build()
 
-                // Utilizamos SurfaceProvider compatible con CameraX
+                // Usa SurfaceProvider directamente para compatibilidad con CameraX
                 preview.setSurfaceProvider { request ->
                     val surface = surfaceView.holder.surface
-                    request.provideSurface(surface, ContextCompat.getMainExecutor(ctx)) {}
+                    if (surface != null && surface.isValid) {
+                        request.provideSurface(surface, ContextCompat.getMainExecutor(ctx)) {
+                            // Callback cuando el Surface ya no sea necesario
+                        }
+                    }
                 }
 
                 val cameraSelector = androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA
