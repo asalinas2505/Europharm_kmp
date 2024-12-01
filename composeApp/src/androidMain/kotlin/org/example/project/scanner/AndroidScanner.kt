@@ -1,9 +1,7 @@
 package org.example.project.scanner
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
-import android.util.Size
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -35,24 +33,19 @@ class AndroidScanner(
             ).build()
     )
 
-    @SuppressLint("RestrictedApi")
     @OptIn(ExperimentalGetImage::class)
     override fun startScanning(onResult: (String) -> Unit) {
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
 
-            // Configuración de Preview con tamaño predeterminado
-            val preview = Preview.Builder()
-                .setDefaultResolution(Size(1280, 720)) // Configuración fija de resolución
-                .build()
+            // Configuración de Preview
+            val preview = Preview.Builder().build()
 
-            // Configuración de ImageAnalysis con tamaño predeterminado
+            // Configuración de ImageAnalysis
             val imageAnalysis = ImageAnalysis.Builder()
-                .setDefaultResolution(Size(640, 480)) // Resolución adecuada para análisis
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
 
-            // Configuración del análisis de imágenes
             imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
                 val mediaImage = imageProxy.image
                 if (mediaImage != null) {
@@ -74,19 +67,22 @@ class AndroidScanner(
                         .addOnCompleteListener {
                             imageProxy.close()
                         }
-                } else {
-                    imageProxy.close()
                 }
             }
 
-            // Vincular los casos de uso
+            // Asegúrate de desvincular los casos previos antes de agregar nuevos
             cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(
-                lifecycleOwner,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                preview,
-                imageAnalysis
-            )
+
+            try {
+                cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    preview,
+                    imageAnalysis
+                )
+            } catch (e: Exception) {
+                Log.e("AndroidScanner", "Error binding use cases: ${e.message}")
+            }
         }, ContextCompat.getMainExecutor(context))
     }
 
