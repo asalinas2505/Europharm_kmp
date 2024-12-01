@@ -1,5 +1,6 @@
 package org.example.project.ui
 
+import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -22,6 +23,7 @@ fun CameraPreview(scanner: AndroidScanner) {
                 val cameraProvider = cameraProviderFuture.get()
                 val preview = Preview.Builder().build()
 
+                // Configura el SurfaceProvider
                 preview.setSurfaceProvider { request ->
                     val surface = surfaceView.holder.surface
                     if (surface != null && surface.isValid) {
@@ -29,14 +31,34 @@ fun CameraPreview(scanner: AndroidScanner) {
                     }
                 }
 
+                // Vincula el uso de Preview al ciclo de vida
                 val cameraSelector = androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA
-
-                cameraProvider.bindToLifecycle(
-                    scanner.lifecycleOwner,
-                    cameraSelector,
-                    preview
-                )
+                cameraProvider.unbindAll()
+                try {
+                    cameraProvider.bindToLifecycle(
+                        scanner.lifecycleOwner,
+                        cameraSelector,
+                        preview
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }, ContextCompat.getMainExecutor(ctx))
+
+            // Configura el SurfaceHolder para asegurar la visibilidad
+            surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
+                override fun surfaceCreated(holder: SurfaceHolder) {
+                    // Configuración adicional si es necesario
+                }
+
+                override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                    // Ajusta el tamaño si es necesario
+                }
+
+                override fun surfaceDestroyed(holder: SurfaceHolder) {
+                    // Libera recursos si es necesario
+                }
+            })
 
             surfaceView
         }
